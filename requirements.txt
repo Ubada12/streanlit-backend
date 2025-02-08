@@ -7,7 +7,7 @@ numpy>=1.26.0,<2.0
 matplotlib==3.10.0
 
 # ML/DL dependencies (for your models)
-tensorflow==2.18.0
+tensorflow-cpu==2.18.0
 scikit-learn==1.4.0
 joblib==1.4.2
 
