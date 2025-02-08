@@ -1,0 +1,33 @@
+# FastAPI and server dependencies
+fastapi==0.109.1
+uvicorn==0.27.0
+python-multipart==0.0.6
+pillow==11.1.0
+numpy==2.0.2
+matplotlib==3.10.0
+
+# ML/DL dependencies (for your models)
+tensorflow==2.18.0
+scikit-learn==1.4.0
+joblib==1.4.2
+
+# Data handling
+pandas==2.2.0
+
+# Image processing
+opencv-python-headless==4.10.0.84
+
+# Streamlit (if you still need it)
+streamlit==1.41.1
+
+# HTTP requests
+requests==2.32.3
+
+# CORS handling
+python-jose==3.3.0
+python-dotenv==1.0.0
+
+# Other utilities
+pydantic==2.6.0
+lime==0.2.0.1
+shap==0.46.0
