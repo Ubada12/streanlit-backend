@@ -1,3 +1,4 @@
+import os
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,12 +11,21 @@ import io
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
 
+# ✅ Force TensorFlow to use only the CPU (IMPORTANT FOR RENDER)
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+import tensorflow as tf
+
+# ✅ Optimize CPU usage for TensorFlow
+tf.config.threading.set_inter_op_parallelism_threads(2)
+tf.config.threading.set_intra_op_parallelism_threads(2)
+
 app = FastAPI()
 
 # Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Or specify React app URL
+    allow_origins=["*"],  # Change to your frontend URL if needed
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -24,7 +34,7 @@ app.add_middleware(
 def load_model():
     return Model('models/vgg16_model.keras', 'models/rf_model.joblib', 'models/X_train_smote.npy')
 
-# Disable interactive mode in matplotlib to prevent opening of figure windows
+# Disable interactive mode in matplotlib to prevent figure window issues
 plt.ioff()
 
 # Define API routes
@@ -38,38 +48,38 @@ async def predict(
     latitude: float = 20.0,
     longitude: float = 20.0
 ):
-    # Load the image
-    img_bytes = await image.read()
-    img = Image.open(BytesIO(img_bytes))
-    
-    # Convert image to format suitable for prediction (NumPy array)
-    image_cv = np.array(img)
-    
-    # Load the model and make the prediction
-    model = load_model()
-    prediction, plot_list = model.predict(image_cv, latitude, longitude)
-    
-    # Convert prediction to native Python int to ensure JSON serializability
-    prediction = int(prediction)
+    try:
+        # Load the image
+        img_bytes = await image.read()
+        img = Image.open(BytesIO(img_bytes))
+        
+        # Convert image to format suitable for prediction (NumPy array)
+        image_cv = np.array(img)
+        
+        # Load the model and make the prediction
+        model = load_model()
+        prediction, plot_list = model.predict(image_cv, latitude, longitude)
+        
+        # Convert prediction to native Python int to ensure JSON serializability
+        prediction = int(prediction)
 
-    # Convert plots to base64-encoded strings for JSON serialization
-    plot_base64_list = []
-    for plot in plot_list:
-        # Save the figure to a BytesIO buffer
-        buf = io.BytesIO()
-        plot.savefig(buf, format='png')
-        buf.seek(0)
-
-        # Convert the buffer to a base64 string
-        plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        plot_base64_list.append(plot_base64)
+        # Convert plots to base64-encoded strings for JSON serialization
+        plot_base64_list = []
+        for plot in plot_list:
+            buf = io.BytesIO()
+            plot.savefig(buf, format='png')
+            buf.seek(0)
+            plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            plot_base64_list.append(plot_base64)
+        
+        # Prepare the response
+        return {
+            "prediction": prediction,
+            "plots": plot_base64_list  # Return the plots as base64 strings
+        }
     
-    # Prepare the response
-    result = {
-        "prediction": prediction,
-        "plots": plot_base64_list  # Return the plots as base64 strings
-    }
-    return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
