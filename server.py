@@ -10,6 +10,7 @@ import io
 import os
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
+import subprocess
 
 app = FastAPI()
 
@@ -62,6 +63,20 @@ plt.ioff()
 @app.get("/")
 def read_home():
     return {"message": "Welcome to the FastAPI Server!"}
+
+@app.get("/debug/models")
+def debug_models():
+    models_path = "/app/models"
+    
+    if not os.path.exists(models_path):
+        raise HTTPException(status_code=500, detail=f"❌ Directory not found: {models_path}")
+
+    try:
+        # Run `ls -lah` equivalent
+        result = subprocess.run(["ls", "-lah", models_path], capture_output=True, text=True)
+        return {"output": result.stdout}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.post("/predictions")
 async def predict(
