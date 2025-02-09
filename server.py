@@ -21,23 +21,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Ensure models directory exists
-MODEL_DIR = os.path.abspath("models")
+# Use relative paths based on the current working directory
+MODEL_DIR = os.path.join(os.getcwd(), "models")
 VGG_MODEL_PATH = os.path.join(MODEL_DIR, "vgg16_model.keras")
 RF_MODEL_PATH = os.path.join(MODEL_DIR, "rf_model.joblib")
 SMOTE_PATH = os.path.join(MODEL_DIR, "X_train_smote.npy")
 
-# Load the model
 def load_model():
-    # Check if the model files exist before loading
+    # Check if the models directory exists
+    if not os.path.exists(MODEL_DIR):
+        raise HTTPException(status_code=500, detail=f"❌ Models directory not found: {MODEL_DIR}")
+
+    # Print all files in the models directory for debugging
+    print(f"📂 Listing contents of: {MODEL_DIR}")
+    for file in os.listdir(MODEL_DIR):
+        print(f" - {file}")
+
+    # Verify the existence of each required model file
     if not os.path.exists(VGG_MODEL_PATH):
-        raise HTTPException(status_code=500, detail=f"Model file not found: {VGG_MODEL_PATH}")
+        raise HTTPException(status_code=500, detail=f"❌ Model file not found: {VGG_MODEL_PATH}")
     if not os.path.exists(RF_MODEL_PATH):
-        raise HTTPException(status_code=500, detail=f"RF Model file not found: {RF_MODEL_PATH}")
+        raise HTTPException(status_code=500, detail=f"❌ RF Model file not found: {RF_MODEL_PATH}")
     if not os.path.exists(SMOTE_PATH):
-        raise HTTPException(status_code=500, detail=f"SMOTE data file not found: {SMOTE_PATH}")
+        raise HTTPException(status_code=500, detail=f"❌ SMOTE data file not found: {SMOTE_PATH}")
 
     print("✅ Model files found, loading...")
+
     try:
         model = Model(VGG_MODEL_PATH, RF_MODEL_PATH, SMOTE_PATH)
         print("✅ Model loaded successfully!")
