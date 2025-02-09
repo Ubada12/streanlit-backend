@@ -10,36 +10,23 @@ import base64
 import io
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
-
-# ✅ Limit TensorFlow GPU memory growth (IMPORTANT FOR LOW-RAM SERVERS)
-os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-
-# ✅ Disable TensorFlow optimizations that consume extra memory
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-
-# ✅ Force TensorFlow to use only the CPU
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-
 import tensorflow as tf
 
-# ✅ Optimize CPU usage for TensorFlow
-tf.config.threading.set_inter_op_parallelism_threads(2)
-tf.config.threading.set_intra_op_parallelism_threads(2)
+# ✅ Suppress TensorFlow CPU feature warnings & oneDNN messages
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # Suppress unnecessary TensorFlow logs
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"  # Disable oneDNN optimizations
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU-only usage
 
-# ✅ Set a memory limit (e.g., 512MB) if needed
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=512)]
-        )
-    except RuntimeError as e:
-        print(e)
+# ✅ Optimize CPU usage for TensorFlow
+try:
+    tf.config.threading.set_inter_op_parallelism_threads(2)
+    tf.config.threading.set_intra_op_parallelism_threads(2)
+except Exception as e:
+    print(f"[WARNING] Error setting TensorFlow threading: {e}")
 
 app = FastAPI()
 
-# Allow frontend to communicate with backend
+# ✅ Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Change to your frontend URL if needed
@@ -47,14 +34,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load the model
+# ✅ Load the model once to prevent reloading on every request
 def load_model():
-    return Model('models/vgg16_model.keras', 'models/rf_model.joblib', 'models/X_train_smote.npy')
+    try:
+        return Model('models/vgg16_model.keras', 'models/rf_model.joblib', 'models/X_train_smote.npy')
+    except Exception as e:
+        print(f"[ERROR] Model loading failed: {e}")
+        return None
 
-# Disable interactive mode in matplotlib to prevent figure window issues
+model = load_model()
+
+# ✅ Disable interactive mode in matplotlib to prevent figure window issues
 plt.ioff()
 
-# Define API routes
 @app.get("/")
 def read_home():
     return {"message": "Welcome to the FastAPI Server!"}
@@ -66,15 +58,17 @@ async def predict(
     longitude: float = 20.0
 ):
     try:
+        if model is None:
+            return JSONResponse(status_code=500, content={"error": "Model not loaded properly."})
+
         # Load the image
         img_bytes = await image.read()
-        img = Image.open(BytesIO(img_bytes))
+        img = Image.open(BytesIO(img_bytes)).convert('RGB')
         
         # Convert image to format suitable for prediction (NumPy array)
         image_cv = np.array(img)
         
-        # Load the model and make the prediction
-        model = load_model()
+        # Make the prediction
         prediction, plot_list = model.predict(image_cv, latitude, longitude)
         
         # Convert prediction to native Python int to ensure JSON serializability
@@ -89,7 +83,6 @@ async def predict(
             plot_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
             plot_base64_list.append(plot_base64)
         
-        # Prepare the response
         return {
             "prediction": prediction,
             "plots": plot_base64_list  # Return the plots as base64 strings
