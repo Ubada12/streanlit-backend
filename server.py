@@ -36,11 +36,19 @@ app.add_middleware(
 
 # ✅ Load the model once to prevent reloading on every request
 def load_model():
-    try:
-        return Model('models/vgg16_model.keras', 'models/rf_model.joblib', 'models/X_train_smote.npy')
-    except Exception as e:
-        print(f"[ERROR] Model loading failed: {e}")
-        return None
+    vgg_model_path = "models/vgg16_model.keras"
+    rf_model_path = "models/rf_model.joblib"
+    smote_data_path = "models/X_train_smote.npy"
+
+    # Check if model files exist
+    if not os.path.exists(vgg_model_path):
+        raise FileNotFoundError(f"Model file missing: {vgg_model_path}")
+    if not os.path.exists(rf_model_path):
+        raise FileNotFoundError(f"Model file missing: {rf_model_path}")
+    if not os.path.exists(smote_data_path):
+        raise FileNotFoundError(f"SMOTE dataset missing: {smote_data_path}")
+
+    return Model(vgg_model_path, rf_model_path, smote_data_path)
 
 model = load_model()
 
