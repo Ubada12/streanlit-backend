@@ -22,6 +22,9 @@ app.add_middleware(
 
 # Load the model
 def load_model():
+    model_path = os.path.abspath('models/vgg16_model.keras')
+    print("Loading model from:", model_path)  # Debugging
+    print("Current working directory:", os.getcwd())
     return Model('models/vgg16_model.keras', 'models/rf_model.joblib', 'models/X_train_smote.npy')
 
 # Disable interactive mode in matplotlib to prevent opening of figure windows
