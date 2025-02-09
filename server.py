@@ -7,6 +7,7 @@ from models.pipeline import Model
 from PIL import Image
 import base64
 import io
+import os
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
 
