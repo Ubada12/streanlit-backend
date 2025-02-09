@@ -5,6 +5,7 @@ python-multipart==0.0.6
 pillow==11.1.0
 numpy>=1.26.0,<2.0
 matplotlib==3.10.0
+gunicorn==21.2.0
 
 # ML/DL dependencies (for your models)
 tensorflow-cpu==2.18.0
