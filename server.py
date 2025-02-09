@@ -11,7 +11,13 @@ import io
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
 
-# ✅ Force TensorFlow to use only the CPU (IMPORTANT FOR RENDER)
+# ✅ Limit TensorFlow GPU memory growth (IMPORTANT FOR LOW-RAM SERVERS)
+os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
+
+# ✅ Disable TensorFlow optimizations that consume extra memory
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+# ✅ Force TensorFlow to use only the CPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import tensorflow as tf
@@ -19,6 +25,17 @@ import tensorflow as tf
 # ✅ Optimize CPU usage for TensorFlow
 tf.config.threading.set_inter_op_parallelism_threads(2)
 tf.config.threading.set_intra_op_parallelism_threads(2)
+
+# ✅ Set a memory limit (e.g., 512MB) if needed
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=512)]
+        )
+    except RuntimeError as e:
+        print(e)
 
 app = FastAPI()
 
