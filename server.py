@@ -38,7 +38,13 @@ def load_model():
         raise HTTPException(status_code=500, detail=f"SMOTE data file not found: {SMOTE_PATH}")
 
     print("✅ Model files found, loading...")
-    return Model(VGG_MODEL_PATH, RF_MODEL_PATH, SMOTE_PATH)
+    try:
+        model = Model(VGG_MODEL_PATH, RF_MODEL_PATH, SMOTE_PATH)
+        print("✅ Model loaded successfully!")
+        return model
+    except Exception as e:
+        print(f"❌ Error loading model: {e}")
+        raise HTTPException(status_code=500, detail=f"Error loading model: {str(e)}")
 
 # Disable interactive mode in matplotlib to prevent opening figure windows
 plt.ioff()
